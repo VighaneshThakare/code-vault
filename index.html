@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ML Codes</title>
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#faf9f6;--ink:#222;--mute:#777;--line:#2a2a2a;--code:#f0eee8;--acc:#2f6fed;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1c1e;--ink:#eee;--mute:#999;--line:#d8d8d8;--code:#111;--acc:#7aa2ff}}
+:root[data-theme="dark"]{--bg:#1c1c1e;--ink:#eee;--mute:#999;--line:#d8d8d8;--code:#111;--acc:#7aa2ff}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Patrick Hand','Comic Sans MS',cursive,sans-serif;font-size:18px}
+.sheet{max-width:860px;margin:20px auto;padding:22px;border:2px solid var(--line);border-radius:18px 14px 20px 12px}
+header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap}
+h1{margin:0;font-size:inherit;font-weight:normal;flex:1;min-width:160px}
+.title{font:inherit;font-size:24px;color:var(--ink);background:transparent;border:0;border-bottom:2px dashed transparent;width:100%;padding:2px 0}
+.edit .title{border-bottom-color:var(--mute)}
+.title:focus{outline:none;border-bottom-color:var(--acc)}
+button{font:inherit;color:var(--ink);background:transparent;border:2px solid var(--line);border-radius:10px 8px 11px 7px;padding:3px 14px;cursor:pointer}
+button:hover{background:var(--code)}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.row{border:2px solid var(--line);border-radius:12px 9px 13px 8px;margin-bottom:14px;overflow:hidden}
+.top{display:flex;align-items:center;gap:10px;padding:10px 14px}
+.name{flex:1;min-width:0;overflow-wrap:anywhere}
+.name input{font:inherit;color:var(--ink);background:transparent;border:0;border-bottom:2px dashed var(--mute);width:100%}
+.btns{display:flex;gap:8px;flex-shrink:0}
+.body{display:none;border-top:2px dashed var(--line);padding:12px 14px}
+.row.open .body{display:block}
+pre{margin:0;background:var(--code);padding:12px;border-radius:8px;overflow-x:auto;font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre}
+textarea{width:100%;min-height:200px;background:var(--code);color:var(--ink);border:2px solid var(--line);border-radius:8px;padding:10px;font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;resize:vertical}
+.tools{display:none;gap:8px;margin-top:10px}
+.edit .tools{display:flex}
+.edit pre{display:none}
+.editonly{display:none}
+.edit .editonly{display:block}
+.edit .viewonly{display:none}
+.empty{color:var(--mute);text-align:center;padding:30px 0}
+.del{border-color:#c0392b;color:#c0392b}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:6px 18px;border-radius:20px;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.on{opacity:1}
+.foot{display:none;gap:8px;flex-wrap:wrap;margin-top:6px}
+.edit .foot{display:flex}
+@media (max-width:520px){.top{flex-wrap:wrap}.btns{width:100%;justify-content:flex-end}}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<main class="sheet" id="app">
+  <header>
+    <h1><input class="title" id="title" aria-label="Page title" value="ML Codes" readonly></h1>
+    <button id="mode">Edit page</button>
+  </header>
+  <div id="list"></div>
+  <div class="foot">
+    <button id="add">+ Add experiment</button>
+    <button id="export">Export backup</button>
+    <button id="import">Import backup</button>
+    <input type="file" id="file" accept=".json" hidden>
+  </div>
+</main>
+<div class="toast" id="toast" role="status"></div>
+<script>
+(function(){
+var KEY='expcodes-v1';
+var state={title:'ML Codes',items:[{name:'exp 1 - Linear Regression',code:'import numpy as np\nfrom sklearn.linear_model import LinearRegression\n\nX = np.array([[1],[2],[3],[4]])\ny = np.array([2,4,6,8])\nmodel = LinearRegression().fit(X, y)\nprint(model.predict([[5]]))',open:false}]};
+var editing=false;
+try{var s=localStorage.getItem(KEY);if(s){var p=JSON.parse(s);if(p&&Array.isArray(p.items))state=p;}}catch(e){}
+var $=function(i){return document.getElementById(i)};
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+function toast(m){var t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(function(){t.classList.remove('on')},1500);}
+function copy(text){
+  function fb(){var a=document.createElement('textarea');a.value=text;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();var ok=false;try{ok=document.execCommand('copy');}catch(e){}a.remove();toast(ok?'Copied':'Copy failed - select and copy manually');}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){toast('Copied')},fb);}else fb();
+}
+function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
+function render(){
+  document.title=state.title||'Codes';
+  $('title').value=state.title;
+  $('title').readOnly=!editing;
+  $('app').classList.toggle('edit',editing);
+  $('mode').textContent=editing?'Done':'Edit page';
+  var list=$('list');list.innerHTML='';
+  if(!state.items.length){list.appendChild(el('div','empty',editing?'No experiments yet. Add one below.':'No experiments yet. Tap "Edit page" to add one.'));}
+  state.items.forEach(function(it,i){
+    var row=el('div','row'+(it.open?' open':''));
+    var top=el('div','top');
+    var name=el('div','name');
+    var nv=el('span','viewonly',it.name||'Untitled');
+    var ni=el('input');ni.value=it.name;ni.setAttribute('aria-label','Experiment name');ni.className='editonly';
+    ni.oninput=function(){it.name=ni.value;save();};
+    name.appendChild(nv);name.appendChild(ni);
+    var btns=el('div','btns');
+    var cb=el('button',null,'copy');cb.onclick=function(){copy(it.code||'');};
+    var vb=el('button',null,it.open?'hide':'view');vb.setAttribute('aria-expanded',it.open?'true':'false');
+    vb.onclick=function(){it.open=!it.open;save();render();};
+    btns.appendChild(cb);btns.appendChild(vb);
+    top.appendChild(name);top.appendChild(btns);
+    var body=el('div','body');
+    var pre=el('pre');pre.textContent=it.code||'(no code yet)';
+    var ta=el('textarea');ta.value=it.code;ta.spellcheck=false;ta.setAttribute('aria-label','Experiment code');
+    ta.className='editonly';ta.oninput=function(){it.code=ta.value;save();};
+    var tools=el('div','tools');
+    var up=el('button',null,'Move up');up.onclick=function(){if(i>0){state.items.splice(i-1,0,state.items.splice(i,1)[0]);save();render();}};
+    var dn=el('button',null,'Move down');dn.onclick=function(){if(i<state.items.length-1){state.items.splice(i+1,0,state.items.splice(i,1)[0]);save();render();}};
+    var del=el('button','del','Delete');del.onclick=function(){if(confirm('Delete this experiment?')){state.items.splice(i,1);save();render();}};
+    tools.appendChild(up);tools.appendChild(dn);tools.appendChild(del);
+    body.appendChild(pre);body.appendChild(ta);body.appendChild(tools);
+    row.appendChild(top);row.appendChild(body);list.appendChild(row);
+  });
+}
+$('title').oninput=function(){state.title=$('title').value;document.title=state.title||'Codes';save();};
+$('mode').onclick=function(){editing=!editing;if(editing){state.items.forEach(function(x){x.open=true;});}save();render();};
+$('add').onclick=function(){state.items.push({name:'exp '+(state.items.length+1)+' - exp name',code:'',open:true});save();render();};
+$('export').onclick=function(){
+  var b=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=(state.title||'codes').replace(/\W+/g,'_')+'.json';a.click();
+  setTimeout(function(){toast('If nothing downloaded, copy your code manually')},400);
+};
+$('import').onclick=function(){$('file').click();};
+$('file').onchange=function(e){
+  var f=e.target.files[0];if(!f)return;var r=new FileReader();
+  r.onload=function(){try{var d=JSON.parse(r.result);if(!Array.isArray(d.items))throw 0;state={title:String(d.title||''),items:d.items.map(function(x){return{name:String(x.name||''),code:String(x.code||''),open:true};})};save();render();toast('Imported');}catch(err){toast('Not a valid backup file');}};
+  r.readAsText(f);e.target.value='';
+};
+render();
+})();
+</script>
+</body>
+</html>
