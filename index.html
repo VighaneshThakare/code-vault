@@ -13,7 +13,7 @@ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:en
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:'Patrick Hand','Comic Sans MS',cursive,sans-serif;font-size:18px}
-.sheet{max-width:860px;margin:20px auto;padding:22px;border:2px solid var(--line);border-radius:18px 14px 20px 12px}
+.headerBtns{display:flex;gap:8px;flex-wrap:wrap}.sheet{max-width:860px;margin:20px auto;padding:22px;border:2px solid var(--line);border-radius:18px 14px 20px 12px}
 header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap}
 h1{margin:0;font-size:inherit;font-weight:normal;flex:1;min-width:160px}
 .title{font:inherit;font-size:24px;color:var(--ink);background:transparent;border:0;border-bottom:2px dashed transparent;width:100%;padding:2px 0}
@@ -51,7 +51,7 @@ textarea{width:100%;min-height:200px;background:var(--code);color:var(--ink);bor
 <main class="sheet" id="app">
   <header>
     <h1><input class="title" id="title" aria-label="Page title" value="ML Codes" readonly></h1>
-    <button id="mode">Edit page</button>
+    <div class="headerBtns"><button id="share">Share page</button><button id="mode">Edit page</button></div>
   </header>
   <div id="list"></div>
   <div class="foot">
@@ -67,9 +67,35 @@ textarea{width:100%;min-height:200px;background:var(--code);color:var(--ink);bor
 var KEY='expcodes-v1';
 var state={title:'ML Codes',items:[{name:'exp 1 - Linear Regression',code:'import numpy as np\nfrom sklearn.linear_model import LinearRegression\n\nX = np.array([[1],[2],[3],[4]])\ny = np.array([2,4,6,8])\nmodel = LinearRegression().fit(X, y)\nprint(model.predict([[5]]))',open:false}]};
 var editing=false;
-try{var s=localStorage.getItem(KEY);if(s){var p=JSON.parse(s);if(p&&Array.isArray(p.items))state=p;}}catch(e){}
+function decodeSharedState(){
+  try{
+    var raw=location.hash.indexOf('#data=')===0?decodeURIComponent(location.hash.slice(6)):'';
+    if(!raw)return null;
+    var p=JSON.parse(raw);
+    if(p&&Array.isArray(p.items)){
+      p.title=String(p.title||'Codes');
+      p.items=p.items.map(function(x){return{name:String(x.name||''),code:String(x.code||''),open:false};});
+      if(Number.isInteger(p.focus)&&p.items[p.focus])p.items[p.focus].open=true;
+      return p;
+    }
+  }catch(e){}
+  return null;
+}
+var shared=decodeSharedState();
+if(shared){state=shared;try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+else{try{var s=localStorage.getItem(KEY);if(s){var p=JSON.parse(s);if(p&&Array.isArray(p.items))state=p;}}catch(e){}}
+function sharedUrl(index){
+  var payload={title:state.title||'Codes',items:state.items.map(function(x){return{name:x.name||'',code:x.code||'',open:false};})};
+  if(typeof index==='number')payload.focus=index;
+  return location.href.split('#')[0]+'#data='+encodeURIComponent(JSON.stringify(payload));
+}
+function syncUrl(){
+  var payload={title:state.title||'Codes',items:state.items.map(function(x){return{name:x.name||'',code:x.code||'',open:false};})};
+  history.replaceState(null,'',location.href.split('#')[0]+'#data='+encodeURIComponent(JSON.stringify(payload)));
+}
+
 var $=function(i){return document.getElementById(i)};
-function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}syncUrl();}
 function toast(m){var t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(function(){t.classList.remove('on')},1500);}
 function copy(text){
   function fb(){var a=document.createElement('textarea');a.value=text;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();var ok=false;try{ok=document.execCommand('copy');}catch(e){}a.remove();toast(ok?'Copied':'Copy failed - select and copy manually');}
@@ -93,7 +119,7 @@ function render(){
     ni.oninput=function(){it.name=ni.value;save();};
     name.appendChild(nv);name.appendChild(ni);
     var btns=el('div','btns');
-    var cb=el('button',null,'copy');cb.onclick=function(){copy(it.code||'');};
+    var cb=el('button',null,'copy');cb.title='Copy a shareable URL for this experiment';cb.onclick=function(){copy(sharedUrl(i));};
     var vb=el('button',null,it.open?'hide':'view');vb.setAttribute('aria-expanded',it.open?'true':'false');
     vb.onclick=function(){it.open=!it.open;save();render();};
     btns.appendChild(cb);btns.appendChild(vb);
@@ -112,6 +138,7 @@ function render(){
   });
 }
 $('title').oninput=function(){state.title=$('title').value;document.title=state.title||'Codes';save();};
+$('share').onclick=function(){copy(sharedUrl());};
 $('mode').onclick=function(){editing=!editing;if(editing){state.items.forEach(function(x){x.open=true;});}save();render();};
 $('add').onclick=function(){state.items.push({name:'exp '+(state.items.length+1)+' - exp name',code:'',open:true});save();render();};
 $('export').onclick=function(){
