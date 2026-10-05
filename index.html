@@ -37,7 +37,7 @@ textarea{width:100%;min-height:200px;background:var(--code);color:var(--ink);bor
 .editonly{display:none}
 .edit .editonly{display:block}
 .edit .viewonly{display:none}
-.empty{color:var(--mute);text-align:center;padding:30px 0}
+.empty{color:var(--mute);text-align:center;padding:30px 0}\n.hint{color:var(--mute);font-size:15px;margin:-6px 0 16px;line-height:1.35}.hint code{font-family:ui-monospace,Menlo,Consolas,monospace}
 .del{border-color:#c0392b;color:#c0392b}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:6px 18px;border-radius:20px;opacity:0;pointer-events:none;transition:opacity .2s}
 .toast.on{opacity:1}
@@ -53,12 +53,10 @@ textarea{width:100%;min-height:200px;background:var(--code);color:var(--ink);bor
     <h1><input class="title" id="title" aria-label="Page title" value="ML Codes" readonly></h1>
     <div class="headerBtns"><button id="share">Share page</button><button id="mode">Edit page</button></div>
   </header>
+  <div class="hint" id="hint">Edit the experiments, then update the <code>state</code> data in <code>index.html</code> and push to GitHub to publish changes for everyone.</div>
   <div id="list"></div>
   <div class="foot">
     <button id="add">+ Add experiment</button>
-    <button id="export">Export backup</button>
-    <button id="import">Import backup</button>
-    <input type="file" id="file" accept=".json" hidden>
   </div>
 </main>
 <div class="toast" id="toast" role="status"></div>
@@ -82,8 +80,8 @@ function decodeSharedState(){
   return null;
 }
 var shared=decodeSharedState();
-if(shared){state=shared;try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
-else{try{var s=localStorage.getItem(KEY);if(s){var p=JSON.parse(s);if(p&&Array.isArray(p.items))state=p;}}catch(e){}}
+if(shared){state=shared;try{;}catch(e){}}
+else{try{var s=null;if(s){var p=JSON.parse(s);if(p&&Array.isArray(p.items))state=p;}}catch(e){}}
 function sharedUrl(index){
   var payload={title:state.title||'Codes',items:state.items.map(function(x){return{name:x.name||'',code:x.code||'',open:false};})};
   if(typeof index==='number')payload.focus=index;
@@ -95,7 +93,7 @@ function syncUrl(){
 }
 
 var $=function(i){return document.getElementById(i)};
-function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}syncUrl();}
+function save(){}
 function toast(m){var t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(function(){t.classList.remove('on')},1500);}
 function copy(text){
   function fb(){var a=document.createElement('textarea');a.value=text;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();var ok=false;try{ok=document.execCommand('copy');}catch(e){}a.remove();toast(ok?'Copied':'Copy failed - select and copy manually');}
